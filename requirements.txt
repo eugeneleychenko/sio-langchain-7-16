@@ -4,4 +4,7 @@ langchain>=0.3
 langchain-anthropic>=0.1
 langchain-groq>=0.1
 python-dotenv
-tabulate 
+tabulate
+vanna[all]
+plotly
+duckdb 
