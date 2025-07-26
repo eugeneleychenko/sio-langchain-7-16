@@ -44,7 +44,7 @@ def main():
     print("=" * 50)
     
     # Check if CSV file exists
-    csv_path = "stackadapt-4-1-7-14.csv"
+    csv_path = "Incremental_NRx_TRx_Data.csv"
     if os.path.exists(csv_path):
         print(f"✅ CSV file found: {csv_path}")
     else:

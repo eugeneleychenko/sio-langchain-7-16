@@ -51,7 +51,7 @@ st.markdown("""
 
 class VannaApp:
     def __init__(self):
-        self.csv_path = "/Users/eugeneleychenko/Downloads/SIO Langchain Experiments 7-16/stackadapt-4-1-7-14.csv"
+        self.csv_path = "/Users/eugeneleychenko/Downloads/SIO Langchain Experiments 7-16/only 2025 AI Tool GEO Data Test Set - All Channels Geo Data - Actual.csv"
         self.db_path = "marketing_data.db"
         
     def setup_database(self):
@@ -94,7 +94,7 @@ class VannaApp:
                     ChromaDB_VectorStore.__init__(self, config=config)
                     OpenAI_Chat.__init__(self, config=config)
 
-            vn = MyVanna(config={'api_key': openai_key, 'model': 'gpt-3.5-turbo'})
+            vn = MyVanna(config={'api_key': openai_key, 'model': 'gpt-4.1'})
 
             # Connect to SQLite database
             vn.connect_to_sqlite(self.db_path)
@@ -121,48 +121,56 @@ class VannaApp:
         # Define the schema documentation
         ddl = """
         CREATE TABLE marketing_campaigns (
-            Region TEXT,
-            Data_Date TEXT,
-            Month_Day_MonthName TEXT,
+            "Region (User location)" TEXT,
             Month TEXT,
+            Week TEXT,
             Campaign TEXT,
             Clicks INTEGER,
-            Impr INTEGER,
-            Unique_Impr INTEGER,
-            Current_Code TEXT,
-            Cost REAL,
-            Click_Conversions INTEGER,
-            View_Conversion INTEGER,
-            CPC REAL,
-            CPA REAL,
+            "Impr." INTEGER,
+            "Currency code" TEXT,
+            Cost TEXT,
+            Conversions INTEGER,
+            CPC TEXT,
+            CPA TEXT,
             Channel TEXT,
-            Funnel_Stage TEXT
+            Funnel TEXT,
+            "Allocated Spend" TEXT,
+            "Actual Spend" TEXT
         );
         """
         
         # Add documentation
         documentation = """
-        This table contains marketing campaign performance data with the following key metrics:
-        - Clicks: Number of clicks on ads
-        - Impr: Total impressions
-        - Unique_Impr: Unique impressions 
-        - Cost: Total cost in USD
-        - Click_Conversions: Conversions from clicks
-        - View_Conversion: View-through conversions
+        This table contains marketing campaign performance data by US region/state with the following fields:
+        - Region (User location): US state/region where the campaign was shown
+        - Month: Campaign month (Jan-25 format)
+        - Week: Campaign week (if applicable)
+        - Campaign: Campaign name/description
+        - Clicks: Number of clicks received
+        - Impr.: Number of impressions (views)
+        - Currency code: Currency used (USD)
+        - Cost: Total campaign cost
+        - Conversions: Number of conversions achieved
         - CPC: Cost per click
         - CPA: Cost per acquisition
-        - Channel: Marketing channel (e.g., 'Slynd DTC Video StackAapt')
-        - Funnel_Stage: TOF (Top of Funnel) or BOF (Bottom of Funnel)
-        - Region: US states where campaigns ran
+        - Channel: Marketing channel (e.g., TikTok DTC, DeepIntent DTC)
+        - Funnel: Marketing funnel stage (tof, mof, bof)
+        - Allocated Spend: Budget allocated
+        - Actual Spend: Actual amount spent
         """
         
         # Sample queries for training
         sample_queries = [
-            ("What is the total cost across all campaigns?", "SELECT SUM(Cost) as total_cost FROM marketing_campaigns;"),
-            ("Which region has the highest number of clicks?", "SELECT Region, SUM(Clicks) as total_clicks FROM marketing_campaigns GROUP BY Region ORDER BY total_clicks DESC LIMIT 1;"),
-            ("What's the average CPC by channel?", "SELECT Channel, AVG(CPC) as avg_cpc FROM marketing_campaigns WHERE CPC > 0 GROUP BY Channel;"),
-            ("Show performance by funnel stage", "SELECT Funnel_Stage, SUM(Clicks) as total_clicks, SUM(Cost) as total_cost, AVG(CPC) as avg_cpc FROM marketing_campaigns GROUP BY Funnel_Stage;"),
-            ("Which campaigns have the best conversion rates?", "SELECT Campaign, SUM(Click_Conversions) as conversions, SUM(Clicks) as clicks, CASE WHEN SUM(Clicks) > 0 THEN (SUM(Click_Conversions) * 100.0 / SUM(Clicks)) ELSE 0 END as conversion_rate FROM marketing_campaigns GROUP BY Campaign HAVING SUM(Clicks) > 0 ORDER BY conversion_rate DESC;")
+            ("What is the total number of clicks across all regions?", "SELECT SUM(Clicks) AS total_clicks FROM marketing_campaigns;"),
+            ("Which region has the highest number of conversions?", "SELECT \"Region (User location)\", SUM(Conversions) AS total_conversions FROM marketing_campaigns GROUP BY \"Region (User location)\" ORDER BY total_conversions DESC LIMIT 1;"),
+            ("Show monthly click trends", "SELECT Month, SUM(Clicks) AS total_clicks FROM marketing_campaigns GROUP BY Month ORDER BY Month;"),
+            ("Which channel has the best performance?", "SELECT Channel, SUM(Clicks) AS total_clicks, SUM(Conversions) AS total_conversions FROM marketing_campaigns GROUP BY Channel;"),
+            ("Average cost per region", "SELECT \"Region (User location)\", COUNT(*) AS campaigns FROM marketing_campaigns GROUP BY \"Region (User location)\";"),
+            # NEW ADVANCED SAMPLE
+            (
+                "For each DTC TOF channel, show the top 10 states with the highest average cost per impression in Jun-25, the % above channel average, and total spent",
+                "WITH cleaned AS ( SELECT \"Region (User location)\" AS state, Channel, Funnel, Month, CAST(REPLACE(REPLACE(Cost, '$', ''), ',', '') AS REAL) AS cost_value, CAST(REPLACE(\"Impr.\", ',', '') AS REAL) AS impressions FROM marketing_campaigns WHERE Month = 'Jun-25' AND LOWER(Channel) LIKE '%dtc%' AND LOWER(Funnel) = 'tof' AND impressions > 0 ), state_stats AS ( SELECT Channel, state, AVG(cost_value / impressions) AS avg_cpi, SUM(cost_value) AS total_budget FROM cleaned GROUP BY Channel, state ), overall_avg AS ( SELECT Channel, AVG(cost_value / impressions) AS avg_cpi_all FROM cleaned GROUP BY Channel ), ranked AS ( SELECT ss.Channel, ss.state, ss.avg_cpi, ((ss.avg_cpi - oa.avg_cpi_all) / oa.avg_cpi_all) * 100 AS pct_above_avg, ss.total_budget, ROW_NUMBER() OVER (PARTITION BY ss.Channel ORDER BY ss.avg_cpi DESC) AS rn FROM state_stats ss JOIN overall_avg oa ON ss.Channel = oa.Channel ) SELECT Channel, state, ROUND(avg_cpi, 4) AS avg_cost_per_impression, ROUND(pct_above_avg, 2) AS pct_above_avg, ROUND(total_budget, 2) AS total_budget FROM ranked WHERE rn <= 10 ORDER BY Channel, avg_cost_per_impression DESC;"
+            )
         ]
         
         try:
@@ -217,12 +225,12 @@ def main():
         st.markdown("---")
         st.markdown("### 💡 Sample Questions")
         st.markdown("""
-        - What is the total cost by region?
-        - Which campaigns have the highest CTR?
-        - Show me performance by funnel stage
-        - What's the average CPC by channel?
-        - Which region generates the most conversions?
-        - Compare TOF vs BOF performance
+        - What is the total number of clicks by region?
+        - Which month has the highest number of conversions?
+        - Show me the trend of clicks over time
+        - Which regions have the best conversion rates?
+        - What is the performance by marketing channel?
+        - Which campaigns have the lowest cost per click?
         """)
     
     # Main content area
@@ -240,11 +248,11 @@ def main():
             with col1:
                 st.metric("Total Rows", f"{len(df):,}")
             with col2:
-                st.metric("Total Cost", f"${df['Cost'].sum():,.2f}")
-            with col3:
                 st.metric("Total Clicks", f"{df['Clicks'].sum():,}")
+            with col3:
+                st.metric("Total Conversions", f"{df['Conversions'].sum():,}")
             with col4:
-                st.metric("Total Impressions", f"{df['Impr'].sum():,}")
+                st.metric("Unique Regions", f"{df['Region (User location)'].nunique():,}")
         
     else:
         # Chat interface

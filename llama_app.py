@@ -19,7 +19,7 @@ uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
 else:
-    default_path = "stackadapt-4-1-7-14.csv"
+    default_path = "AI Tool GEO Data Test Set - All Channels Geo Data - Actual.csv"
     if os.path.exists(default_path):
         df = pd.read_csv(default_path)
         st.info(f"Using default CSV file: {default_path}")
