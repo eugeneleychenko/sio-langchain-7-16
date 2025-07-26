@@ -59,7 +59,8 @@ st.markdown("""
 
 class VannaApp:
     def __init__(self):
-        self.csv_path = "/Users/eugeneleychenko/Downloads/SIO Langchain Experiments 7-16/only 2025 AI Tool GEO Data Test Set - All Channels Geo Data - Actual.csv"
+        # Use a path relative to this script so it works both locally and in Streamlit Cloud
+        self.csv_path = os.path.join(os.path.dirname(__file__), "only 2025 AI Tool GEO Data Test Set - All Channels Geo Data - Actual.csv")
         self.db_path = "marketing_data.db"
         
     def setup_database(self):
