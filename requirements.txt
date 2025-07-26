@@ -8,3 +8,5 @@ tabulate
 vanna[all]
 plotly
 duckdb 
+# NEW: Provides an up-to-date SQLite build required by ChromaDB
+pysqlite3-binary>=0.5.2 

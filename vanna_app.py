@@ -1,6 +1,14 @@
 import streamlit as st
 import pandas as pd
 import os
+# NEW: Monkey-patch to ensure SQLite version >= 3.35 for Chroma
+try:
+    import pysqlite3 as sqlite3_mod
+    import sys
+    sys.modules["sqlite3"] = sqlite3_mod
+except ImportError:
+    # Fallback to built-in sqlite3 if pysqlite3 is not installed
+    pass
 from vanna.openai import OpenAI_Chat
 from vanna.chromadb import ChromaDB_VectorStore
 from dotenv import load_dotenv
